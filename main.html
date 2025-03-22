@@ -64,11 +64,14 @@
             <div id="user-info" class="alert alert-info" style="display: none;">
                 <strong>Bem-vindo, <span id="user-name"></span>!</strong>
                 <div class="user-details">
-                    <p>Email: <span id="user-email"></span></p>
-                    <p>Último login: <span id="user-last-login"></span></p>
+                    
                 </div>
             </div>
         </nav>
+        <div class="mb-3">
+            <input type="text" id="searchKeyword" class="form-control" placeholder="Buscar documentos...">
+            <button onclick="searchDocuments()" class="btn btn-primary mt-2">Buscar</button>
+        </div>
         <div id="main-content">
             <!-- O formulário de upload será inserido aqui -->
         </div>
@@ -128,6 +131,100 @@
                 return false;
             }
         }
+
+        async function searchDocuments(page = 0) {
+    const pageSize = 10;
+    const keyword = document.getElementById('searchKeyword').value;
+    try {
+        const response = await fetch(
+            `${API_URL}/search?keyword=${keyword}&page=${page}&size=${pageSize}`,
+            await createFetchConfig()
+        );
+        const data = await response.json();
+        renderDocumentList(data, page);
+    } catch (error) {
+        alert(`Erro ao buscar documentos: ${error.message}`);
+    }
+}function renderDocumentList(data, page) {
+    const container = document.getElementById('main-content');
+    container.innerHTML = `
+        <div class="row">
+            ${data.content.map(doc => `
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${doc.name}</h5>
+                            <p class="card-text">${doc.description}</p>
+                            <div class="d-flex gap-2">
+                                <button onclick="viewDocument(${doc.id})"
+                                    class="btn btn-primary">
+                                    <i class="fas fa-eye"></i> Visualizar
+                                </button>
+                                <button onclick="deleteDocument(${doc.id})"
+                                    class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i> Deletar
+                                </button>
+                                <button onclick="showUpdateForm(${doc.id})"
+                                    class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                ${page > 0 ? `
+                    <li class="page-item">
+                        <button class="page-link" 
+                            onclick="listDocuments(${page-1})">Anterior</button>
+                    </li>
+                ` : ''}
+                <li class="page-item">
+                    <button class="page-link">${page + 1}</button>
+                </li>
+                ${page < data.totalPages - 1 ? `
+                    <li class="page-item">
+                        <button class="page-link" 
+                            onclick="listDocuments(${page+1})">Próximo</button>
+                    </li>
+                ` : ''}
+            </ul>
+        </nav>
+    `;
+}
+
+async function listDocuments(page = 0) {
+    const pageSize = 10;
+    try {
+        const response = await fetch(
+            `${API_URL}/all?page=${page}&size=${pageSize}`,
+            await createFetchConfig()
+        );
+
+        const data = await response.json();
+        renderDocumentList(data, page);
+    } catch (error) {
+        alert(`Erro ao listar documentos: ${error.message}`);
+    }
+}
+
+async function searchDocuments(page = 0) {
+    const pageSize = 10;
+    const keyword = document.getElementById('searchKeyword').value;
+    try {
+        const response = await fetch(
+            `${API_URL}/search?keyword=${keyword}&page=${page}&size=${pageSize}`,
+            await createFetchConfig()
+        );
+        const data = await response.json();
+        renderDocumentList(data, page);
+    } catch (error) {
+        alert(`Erro ao buscar documentos: ${error.message}`);
+    }
+}
 
         function logout() {
             localStorage.removeItem('auth_token');
@@ -326,11 +423,10 @@
                                         onclick="triggerFileInput()">Selecionar Arquivo</button>
                                     <span id="selectedFileName"></span>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-3" d-none>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox"
-                                            name="shared" id="shared" ${doc.shared ? 'checked' : ''}>
-                                        <label class="form-check-label" for="shared">Compartilhar</label>
+                                        <input type="hidden" name="shared" id="shared" value="${doc.shared ? 'true' : 'false'}">
+                                        
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Atualizar</button>
@@ -393,17 +489,28 @@
         });
 
         function showUserInfo() {
-            const user = JSON.parse(localStorage.getItem('loggedUser'));
-            const userInfoDiv = document.getElementById('user-info');
-            const userNameSpan = document.getElementById('user-name');
-            
-            if (user) {
-                userNameSpan.textContent = user.name;
-                userInfoDiv.style.display = 'block';
-            } else {
-                userInfoDiv.style.display = 'none';
-            }
+    const userInfoDiv = document.getElementById('user-info');
+    userInfoDiv.style.display = 'block';
+}
+
+        async function fetchLoggedInUserName() {
+    try {
+        const response = await fetch(`http://localhost:8080/api/usuarios/me`, await createFetchConfig());
+        if (!response.ok) {
+            throw new Error('Erro ao obter o nome do usuário');
         }
+        const userName = await response.text();
+        document.getElementById('user-name').textContent = userName.replace('Usuário logado: ','');
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    showUserInfo();
+    fetchLoggedInUserName(); // Adicione esta linha
+    listDocuments(0);
+});
 
         function showUploadForm() {
             const container = document.getElementById('main-content');
@@ -426,13 +533,7 @@
                                 <input type="file" class="form-control" id="file"
                                     name="file" required>
                             </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox"
-                                        name="shared" id="shared">
-                                    <label class="form-check-label" for="shared">Compartilhar</label>
-                                </div>
-                            </div>
+                            
                             <button type="submit" class="btn btn-primary">Enviar Documento</button>
                         </div>
                     </div>
