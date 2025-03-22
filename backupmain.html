@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Documentos</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .file-input {
+            display: none;
+        }
+        .custom-file-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .custom-file-button:hover {
+            background-color: #0056b3;
+        }
+        .nav-link.active {
+            color: green !important;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .card {
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand">Sistema de Documentos</span>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#"
+                                onclick="showUploadForm()">Novo Documento</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="listDocuments(0)">Lista de Documentos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="logout()">Sair</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="user-info" class="alert alert-info" style="display: none;">
+                <strong>Bem-vindo, <span id="user-name"></span>!</strong>
+                <div class="user-details">
+                    <p>Email: <span id="user-email"></span></p>
+                    <p>Último login: <span id="user-last-login"></span></p>
+                </div>
+            </div>
+        </nav>
+        <div id="main-content">
+            <!-- O formulário de upload será inserido aqui -->
+        </div>
+        <div id="user-info" class="alert alert-info" style="display: none;">
+            Bem-vindo, <span id="user-name"></span>!
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:8080/api/documents';
+
+        // Função para obter o token do localStorage
+        function getAuthToken() {
+            return localStorage.getItem('auth_token');
+        }
+
+        // Configurações padrão para requisições fetch
+        async function createFetchConfig(method = 'GET', body = null) {
+            const headers = {
+                'Authorization': `Bearer ${getAuthToken()}`
+            };
+
+            const config = {
+                method,
+                headers
+            };
+
+            if (body instanceof FormData) {
+                config.body = body;
+            } else if (body !== null) {
+                headers['Content-Type'] = 'application/json';
+                config.body = JSON.stringify(body);
+            }
+
+            return config;
+        }
+
+        // Funções de Autenticação
+        async function login(username, password) {
+            try {
+                const response = await fetch(`${API_URL}/login`, 
+                    await createFetchConfig('POST', { username, password }));
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao fazer login');
+                }
+                
+                const data = await response.json();
+                localStorage.setItem('auth_token', data.token);
+                localStorage.setItem('loggedUser', JSON.stringify(data.user));
+                return true;
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+                return false;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('loggedUser');
+            window.location.href = 'index.html';
+        }
+
+        function showUserInfo() {
+    const user = JSON.parse(localStorage.getItem('loggedUser'));
+    const userInfoDiv = document.getElementById('user-info');
+    const userNameSpan = document.getElementById('user-name');
+    const userEmailSpan = document.getElementById('user-email');
+    const userLastLoginSpan = document.getElementById('user-last-login');
+    
+    if (user) {
+        userNameSpan.textContent = user.name;
+        userEmailSpan.textContent = user.email;
+        userLastLoginSpan.textContent = new Date(user.lastLogin).toLocaleString('pt-BR');
+        userInfoDiv.style.display = 'block';
+    } else {
+        userInfoDiv.style.display = 'none';
+    }
+}
+
+        // Funções de Documentos
+        async function uploadDocument(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            try {
+                const response = await fetch(`${API_URL}/upload`, 
+                    await createFetchConfig('POST', formData));
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao fazer upload');
+                }
+                
+                const data = await response.json();
+                alert('Documento enviado com sucesso!');
+                event.target.reset();
+                listDocuments(0);
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        async function listDocuments(page = 0) {
+            const pageSize = 10;
+            try {
+                const response = await fetch(
+                    `${API_URL}/all?page=${page}&size=${pageSize}`, 
+                    await createFetchConfig()
+                );
+                
+                const data = await response.json();
+                const container = document.getElementById('main-content');
+                container.innerHTML = `
+                    <div class="row">
+                        ${data.content.map(doc => `
+                            <div class="col-md-4 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${doc.name}</h5>
+                                        <p class="card-text">${doc.description}</p>
+                                        <div class="d-flex gap-2">
+                                            <button onclick="viewDocument(${doc.id})"
+                                                class="btn btn-primary">
+                                                <i class="fas fa-eye"></i> Visualizar
+                                            </button>
+                                            <button onclick="deleteDocument(${doc.id})"
+                                                class="btn btn-danger">
+                                                <i class="fas fa-trash-alt"></i> Deletar
+                                            </button>
+                                            <button onclick="showUpdateForm(${doc.id})"
+                                                class="btn btn-warning">
+                                                <i class="fas fa-edit"></i> Atualizar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            ${page > 0 ? `
+                                <li class="page-item">
+                                    <button class="page-link" 
+                                        onclick="listDocuments(${page-1})">Anterior</button>
+                                </li>
+                            ` : ''}
+                            <li class="page-item">
+                                <button class="page-link">${page + 1}</button>
+                            </li>
+                            ${page < data.totalPages - 1 ? `
+                                <li class="page-item">
+                                    <button class="page-link" 
+                                        onclick="listDocuments(${page+1})">Próximo</button>
+                                </li>
+                            ` : ''}
+                        </ul>
+                    </nav>
+                `;
+            } catch (error) {
+                alert(`Erro ao listar documentos: ${error.message}`);
+            }
+        }
+
+        async function viewDocument(id) {
+    try {
+        const response = await fetch(`${API_URL}/${id}/view`, await createFetchConfig());
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const fileType = response.headers.get('Content-Type');
+
+        const container = document.getElementById('main-content');
+        container.innerHTML = ''; // Limpar o conteúdo anterior
+
+        let contentHtml = ''; // Variável para armazenar o HTML do conteúdo
+
+        if (fileType.startsWith('image/')) {
+            // Exibir imagem
+            contentHtml = `<img src="${url}" style="max-width: 100%; height: auto;">`;
+        } else if (fileType === 'application/pdf') {
+            // Exibir PDF
+            contentHtml = `<embed src="${url}" type="application/pdf" width="100%" height="600px" />`;
+        } else if (fileType === 'text/plain') {
+            // Exibir texto
+            const text = await blob.text();
+            contentHtml = `<pre>${text}</pre>`;
+        } else if (fileType === "application/msword" || fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            // Exibir documentos Word (pode exigir bibliotecas adicionais ou um serviço de visualização)
+            contentHtml = `<p>Documento Word. A visualização direta não é suportada. Você pode baixar o arquivo.</p>`;
+        } else {
+            // Exibir outros tipos de arquivo como link para download
+            contentHtml = `<p>Tipo de arquivo não suportado para visualização direta.</p>`;
+        }
+
+        // Adicionar botão de download
+        container.innerHTML = `
+            <div>
+                ${contentHtml}
+                <a href="${url}" download class="btn btn-primary">Baixar Arquivo</a>
+            </div>
+        `;
+    } catch (error) {
+        alert(`Erro ao visualizar o documento: ${error.message}`);
+    }
+}
+
+        async function deleteDocument(id) {
+            const confirmation = confirm("Tem certeza de que deseja deletar este documento?");
+            if (!confirmation) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/${id}`, 
+                    await createFetchConfig('DELETE'));
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao deletar documento');
+                }
+                
+                alert('Documento deletado com sucesso!');
+                listDocuments(0);
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        async function showUpdateForm(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, 
+                    await createFetchConfig());
+                
+                const doc = await response.json();
+                const container = document.getElementById('main-content');
+                container.innerHTML = `
+                    <form id="updateForm" onsubmit="updateDocument(event, ${id})">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nome do Documento</label>
+                                    <input type="text" class="form-control" id="name"
+                                        name="name" value="${doc.name}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Descrição</label>
+                                    <textarea class="form-control" id="description"
+                                        name="description" rows="3" required>${doc.description}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="file" class="form-label">Arquivo</label>
+                                    <input type="file" class="form-control file-input"
+                                        id="file" name="file">
+                                    <button type="button" class="btn btn-primary custom-file-button"
+                                        onclick="triggerFileInput()">Selecionar Arquivo</button>
+                                    <span id="selectedFileName"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                            name="shared" id="shared" ${doc.shared ? 'checked' : ''}>
+                                        <label class="form-check-label" for="shared">Compartilhar</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Atualizar</button>
+                            </div>
+                        </div>
+                    </form>
+                `;
+                
+                // Adicionar eventos após renderização
+                document.getElementById('file').addEventListener('change', function(e) {
+                    const fileName = e.target.files[0].name || '';
+                    document.getElementById('selectedFileName').textContent =
+                        fileName ? ` - ${fileName}` : '';
+                });
+            } catch (error) {
+                alert(`Erro ao carregar dados para atualização: ${error.message}`);
+            }
+        }
+
+        async function updateDocument(event, id) {
+            event.preventDefault();
+            const formData = new FormData();
+            
+            // Adicionar campos básicos
+            const name = document.querySelector("#name").value;
+            const description = document.querySelector("#description").value;
+            const shared = document.querySelector("#shared").checked;
+            
+            // Adicionar arquivo se selecionado
+            const file = document.querySelector("#file").files[0];
+            formData.append("name", name);
+            formData.append("description", description);
+            formData.append("shared", shared);
+            if (file) formData.append("file", file);
+            
+            try {
+                const response = await fetch(`${API_URL}/${id}/update`, 
+                    await createFetchConfig('PUT', formData));
+                
+                if (!response.ok) {
+                    throw new Error("Erro ao atualizar o documento");
+                }
+                
+                const updatedDocument = await response.json();
+                alert("Documento atualizado com sucesso!");
+                listDocuments(0);
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        function triggerFileInput() {
+            document.getElementById('file').click();
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            showUserInfo();
+            listDocuments(0);
+        });
+
+        function showUserInfo() {
+            const user = JSON.parse(localStorage.getItem('loggedUser'));
+            const userInfoDiv = document.getElementById('user-info');
+            const userNameSpan = document.getElementById('user-name');
+            
+            if (user) {
+                userNameSpan.textContent = user.name;
+                userInfoDiv.style.display = 'block';
+            } else {
+                userInfoDiv.style.display = 'none';
+            }
+        }
+
+        function showUploadForm() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `
+                <form id="uploadForm" onsubmit="uploadDocument(event)">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nome do Documento</label>
+                                <input type="text" class="form-control" id="name"
+                                    name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descrição</label>
+                                <textarea class="form-control" id="description"
+                                    name="description" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="file" class="form-label">Arquivo</label>
+                                <input type="file" class="form-control" id="file"
+                                    name="file" required>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                        name="shared" id="shared">
+                                    <label class="form-check-label" for="shared">Compartilhar</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar Documento</button>
+                        </div>
+                    </div>
+                </form>
+            `;
+        }
+    </script>
+</body>
+</html>

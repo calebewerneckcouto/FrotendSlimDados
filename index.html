@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        /* Estilo para o tema dark */
+        body {
+            background-color: #121212; /* Fundo escuro */
+            color: #e0e0e0; /* Texto claro */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-container {
+            background-color: #1f1f1f; /* Cor de fundo do container */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 300px;
+        }
+
+        h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0; /* Adiciona uma margem em cima e embaixo do input */
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ff9800; /* Cor de foco */
+        }
+
+        button {
+            background-color: #3ffb00; /* Cor do botão */
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #3ffb00; /* Cor do botão ao passar o mouse */
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        .profile-img {
+            width: 80px; /* Tamanho do círculo */
+            height: 80px;
+            border-radius: 50%; /* Torna a imagem circular */
+            border: 5px solid #22ff00; /* Borda dourada */
+            overflow: hidden; /* Garante que a imagem não ultrapasse o círculo */
+            display: flex;
+            margin-left: 100px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px; /* Espaço abaixo da imagem */
+        }
+
+        .profile-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Faz a imagem se ajustar ao círculo sem deformar */
+        }
+
+        /* Estilo de alerta */
+        .alert {
+            color: #11ff00;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>
+            <div class="profile-img">
+                <img src="data:image/png;base64,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" alt="Perfil" class="img-circle" />
+            </div>
+        </h2>
+        </h2>
+        <form onsubmit="login(event)">
+            <input type="text" id="email" placeholder="Enter your email" required>
+            <input type="password" id="password" placeholder="Enter your password" required>
+            <button type="submit">Login</button>
+        </form>
+        
+        <div id="alert" class="alert"></div>
+    </div>
+
+    <script>
+    function login(event) {
+        event.preventDefault(); // Evita que a página seja recarregada
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const alertBox = document.getElementById('alert');
+
+        // Requisição para autenticar e receber o token JWT
+        fetch("http://localhost:8080/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                login: email,  // Nome de usuário ou email
+                senha: password
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Autenticação falhou! Código de status: ' + response.status);
+            }
+            // Pegando o token diretamente dos cabeçalhos
+            const token = response.headers.get('Authorization').replace('Bearer ', ''); // Removendo "Bearer " se necessário
+            console.log(token); // Exibe o token no console
+            if (token) {
+                localStorage.setItem("auth_token", token);
+                alertBox.textContent = "Login bem-sucedido! Token armazenado.";
+
+                // Redirecionando para outra página após login bem-sucedido
+                window.location.href = "main.html"; // Substitua pela URL do dashboard ou outra página
+            } else {
+                alertBox.textContent = "Token não encontrado na resposta!";
+            }
+        })
+        .catch(error => {
+            console.error("Erro de autenticação:", error);
+            alertBox.textContent = "Erro ao fazer login: " + error.message;
+        });
+    }
+    </script>
+</body>
+</html>
