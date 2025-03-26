@@ -54,6 +54,14 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#" onclick="listDocuments(0)">Lista de Documentos</a>
                         </li>
+
+                        <li class="nav-item" id="gerarSenhaNavItem" style="display: none;">
+                            <a class="nav-link" href="#" onclick="showGerarSenhaForm()">Gerar Senha</a>
+                        </li>
+
+                        <li class="nav-item" id="criarUsuarioNavItem" style="display: none;">
+                            <a class="nav-link" href="#" onclick="showCriarUsuarioForm()">Criar Usuário</a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" onclick="logout()">Sair</a>
                         </li>
@@ -62,11 +70,11 @@
             </div>
 
             <div id="user-info" class="alert alert-info" style="display: none;">
-                <strong>Bem-vindo, <span id="user-name"></span>!</strong>
-                <div class="user-details">
-                    
-                </div>
+                <strong>Bem-vindo, <span id="user-name"></span>!</strong><br>
+                <span><strong>Permissão:</strong> <span id="user-permissions"></span></span>
+                <div class="user-details"></div>
             </div>
+            
         </nav>
         <div class="mb-3">
             <input type="text" id="searchKeyword" class="form-control" placeholder="Buscar documentos...">
@@ -75,8 +83,34 @@
         <div id="main-content">
             <!-- O formulário de upload será inserido aqui -->
         </div>
-        <div id="user-info" class="alert alert-info" style="display: none;">
-            Bem-vindo, <span id="user-name"></span>!
+        
+        
+    </div>
+
+    <div class="modal fade" id="atualizarSenhaModal" tabindex="-1" aria-labelledby="atualizarSenhaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="atualizarSenhaModalLabel">Atualizar Senha</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="atualizarSenhaForm">
+                        <div class="mb-3">
+                            <label for="modalEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="modalEmail" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="novaSenha" class="form-label">Nova Senha</label>
+                            <input type="password" class="form-control" id="novaSenha" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" onclick="enviarNovaSenha()">Salvar Alterações</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -493,22 +527,216 @@ async function searchDocuments(page = 0) {
     userInfoDiv.style.display = 'block';
 }
 
-        async function fetchLoggedInUserName() {
+ async function fetchLoggedInUserDetails() {
     try {
         const response = await fetch(`http://localhost:8080/api/usuarios/me`, await createFetchConfig());
         if (!response.ok) {
-            throw new Error('Erro ao obter o nome do usuário');
+            throw new Error('Erro ao obter os detalhes do usuário');
         }
-        const userName = await response.text();
-        document.getElementById('user-name').textContent = userName.replace('Usuário logado: ','');
+        const userDetails = await response.text();
+        const userInfo = userDetails.replace('Usuário logado: ', '').split(' | Permissões: ');
+        const userName = userInfo[0];
+        const userPermissions = userInfo.length > 1 ? userInfo[1] : 'Nenhuma permissão encontrada';
+
+        document.getElementById('user-name').innerHTML = `<a href="#" onclick="openAtualizarSenhaModal('${userName}')">${userName}</a>`;
+        document.getElementById('user-permissions').textContent = userPermissions;
+        document.getElementById('user-info').style.display = 'block';
+
+        if (userPermissions.includes('ROLE_ADMIN')) {
+            document.getElementById('gerarSenhaNavItem').style.display = 'block';
+            document.getElementById('criarUsuarioNavItem').style.display = 'block';
+        }
     } catch (error) {
         alert(`Erro: ${error.message}`);
     }
 }
 
+
+        
+        function showCriarUsuarioForm() {
+    const container = document.getElementById('main-content');
+    container.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Criar Novo Usuário</h5>
+                <form id="criarUsuarioForm" onsubmit="criarUsuario(event)">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="login" class="form-label">Login</label>
+                        <input type="text" class="form-control" id="login" name="login" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="senha" class="form-label">Senha</label>
+                        <input type="password" class="form-control" id="senha" name="senha" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isAdmin" name="isAdmin">
+                        <label class="form-check-label" for="isAdmin">Admin</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Usuário</button>
+                </form>
+                <hr>
+                <h5>Lista de Usuários</h5>
+                <table class="table" id="usuariosTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Login</th>
+                           
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    listarUsuarios(); // Carrega a lista de usuários ao exibir o formulário
+}
+
+        async function criarUsuario(event) {
+    event.preventDefault();
+    const nome = document.getElementById('nome').value;
+    const login = document.getElementById('login').value;
+    const senha = document.getElementById('senha').value;
+    const isAdmin = document.getElementById('isAdmin').checked;
+
+    try {
+        const response = await fetch(`http://localhost:8080/api/usuarios/add?isAdmin=${isAdmin}`, await createFetchConfig('POST', {
+            nome,
+            login,
+            senha
+        }));
+
+        if (!response.ok) {
+            throw new Error('Erro ao criar usuário');
+        }
+
+        alert('Usuário criado com sucesso!');
+        listarUsuarios(); // Atualiza a lista de usuários após a criação
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+async function listarUsuarios() {
+    try {
+        const response = await fetch(`http://localhost:8080/api/usuarios/`, await createFetchConfig());
+        if (!response.ok) {
+            throw new Error('Erro ao listar usuários');
+        }
+        const usuarios = await response.json();
+        const tabelaUsuarios = document.getElementById('usuariosTable').getElementsByTagName('tbody')[0];
+        tabelaUsuarios.innerHTML = ''; // Limpa a tabela antes de adicionar os novos dados
+        usuarios.forEach(usuario => {
+            let linha = tabelaUsuarios.insertRow();
+            let colunaNome = linha.insertCell(0);
+            let colunaLogin = linha.insertCell(1);
+            
+            let colunaexcluir = linha.insertCell(2);
+
+            colunaNome.textContent = usuario.nome;
+            colunaLogin.textContent = usuario.login;
+           
+            colunaexcluir.innerHTML = `<button onclick="excluirUsuario(${usuario.id})" class="btn btn-danger btn-sm">Excluir</button>`;
+        });
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+async function excluirUsuario(id) {
+    const confirmacao = confirm('Tem certeza que deseja excluir este usuário?');
+    if (!confirmacao) return;
+
+    try {
+        const response = await fetch(`http://localhost:8080/api/usuarios/${id}`, await createFetchConfig('DELETE'));
+        if (!response.ok) {
+            throw new Error('Erro ao excluir usuário');
+        }
+        alert('Usuário excluído com sucesso!');
+        listarUsuarios(); // Atualiza a lista de usuários após a exclusão
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+
+function showGerarSenhaForm() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Gerar Senha</h5>
+                        <form id="gerarSenhaForm" onsubmit="gerarSenha(event)">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email do Usuário</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+<div class="mb-3">
+                            <a href="https://t.me/slim3dbot" target="_blank">Abrir Slim3D Boot no Telegram</a>
+ </div>
+                            <button type="submit" class="btn btn-primary">Gerar Senha</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function gerarSenha(event) {
+    event.preventDefault();
+    const email = document.getElementById('email').value;
+
+    try {
+        const response = await fetch(`http://localhost:8080/recuperar/`, await createFetchConfig('POST', { login: email })); // Corrigido para 'login'
+        if (!response.ok) {
+            throw new Error('Erro ao gerar senha');
+        }
+        const data = await response.json(); // Obtém a resposta JSON
+        alert(data.error); // Exibe a mensagem de sucesso com a senha
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+function openAtualizarSenhaModal(email) {
+    document.getElementById('modalEmail').value = email;
+    const modal = new bootstrap.Modal(document.getElementById('atualizarSenhaModal'));
+    modal.show();
+}
+    async function enviarNovaSenha() {
+        const email = document.getElementById('modalEmail').value;
+        const novaSenha = document.getElementById('novaSenha').value;
+
+        try {
+            const response = await fetch('http://localhost:8080/recuperar/atualizar-senha', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                },
+                body: JSON.stringify({ login: email, novaSenha: novaSenha })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao atualizar senha');
+            }
+
+            alert('Senha atualizada com sucesso!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('atualizarSenhaModal'));
+            modal.hide();
+        } catch (error) {
+            alert(`Erro: ${error.message}`);
+        }
+    }
+
 document.addEventListener('DOMContentLoaded', () => {
     showUserInfo();
-    fetchLoggedInUserName(); // Adicione esta linha
+    fetchLoggedInUserDetails();
     listDocuments(0);
 });
 
