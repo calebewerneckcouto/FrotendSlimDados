@@ -158,6 +158,47 @@
             return localStorage.getItem('auth_token');
         }
 
+        async function compartilharComTodos() {
+    const documentoId = document.getElementById('documentoId').textContent;
+
+    try {
+        const response = await fetch('http://localhost:8080/api/documents/compartilhar-todos', await createFetchConfig('POST', {
+            documentoId: documentoId
+        }));
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const data = await response.text();
+        alert(data);
+        closeModal();
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
+// 🔥 NOVA FUNÇÃO: Remover compartilhamento de todos
+async function excluirCompartilhamentoDeTodos() {
+    const documentoId = document.getElementById('documentoId').textContent;
+
+    try {
+        const response = await fetch('http://localhost:8080/api/documents/excluir-todos', await createFetchConfig('DELETE', {
+            documentoId: documentoId
+        }));
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const data = await response.text();
+        alert(data);
+        closeModal();
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
         async function compartilharDocumento() {
     const documentoId = document.getElementById('documentoId').textContent;
     const usuarioId = document.getElementById('usuarioSelect').value;
