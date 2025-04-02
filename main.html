@@ -119,33 +119,33 @@
         </div>
     </div>
 
-    <div class="modal fade" id="compartilharModal" tabindex="-1" role="dialog" aria-labelledby="compartilharModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="compartilharModalLabel">Compartilhar Documento</h5>
-                    <button type="button" class="close" onclick="closeModal()" aria-label="Fechar">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+   <div class="modal fade" id="compartilharModal" tabindex="-1" role="dialog" aria-labelledby="compartilharModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="compartilharModalLabel">Compartilhar Documento</h5>
+                <button type="button" class="close" onclick="closeModal()" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p><strong>ID do Documento:</strong> <span id="documentoId"></span></p>
+                <p><strong>Nome do Documento:</strong> <span id="documentoNome"></span></p>
+                <div class="form-group">
+                    <label for="usuarioSelect">Selecionar Usuário:</label>
+                    <select class="form-control" id="usuarioSelect"></select>
                 </div>
-                <div class="modal-body">
-                    <p><strong>ID do Documento:</strong> <span id="documentoId"></span></p>
-                    <p><strong>Nome do Documento:</strong> <span id="documentoNome"></span></p>
-                    <div class="form-group">
-                        <label for="usuarioSelect">Selecionar Usuário:</label>
-                        <select class="form-control" id="usuarioSelect"></select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                    <button type="button" class="btn btn-success" onclick="compartilharDocumento()">Compartilhar</button>
-                    <button type="button" class="btn btn-danger" onclick="ExcluirCompartilhamento()">Excluir Compartilhar</button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="compartilharDocumento()">Compartilhar</button>
+                <button type="button" class="btn btn-warning" onclick="compartilharComTodos()">Compartilhar com Todos</button>
+                <button type="button" class="btn btn-danger" onclick="ExcluirCompartilhamento()">Excluir Compartilhamento</button>
+                <button type="button" class="btn btn-dark" onclick="excluirCompartilhamentoDeTodos()">Excluir de Todos</button>
             </div>
         </div>
     </div>
-    
-   
+</div>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
